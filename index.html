@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DeepSeek API Platform</title>
+<style>
+  :root {
+    --bg: #0b0f1a; --panel: #121829; --panel2: #171f35; --border: #26304d;
+    --text: #e6eaf5; --muted: #8b95b3; --accent: #6c8cff; --accent2: #9b6cff;
+    --ok: #3ddc97; --err: #ff6b7a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: radial-gradient(1200px 600px at 10% -10%, #1a2350 0%, transparent 60%),
+                radial-gradient(900px 500px at 100% 0%, #2a1850 0%, transparent 55%), var(--bg);
+    color: var(--text); min-height: 100vh;
+  }
+  header { padding: 28px 20px 8px; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: grid; place-items: center; font-weight: 800; }
+  h1 { font-size: 20px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .status { font-size: 12px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); }
+  .status.ok { color: var(--ok); } .status.bad { color: var(--err); }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px 20px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+  .card { background: linear-gradient(180deg, var(--panel), var(--panel2)); border: 1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+  .card h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; }
+  input, select, textarea {
+    width: 100%; background: #0d1324; border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,140,255,.15); }
+  textarea { resize: vertical; min-height: 120px; }
+  .row { display: flex; gap: 12px; } .row > * { flex: 1; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--muted); font-size: 13px; }
+  .check input { width: auto; }
+  button.primary {
+    margin-top: 16px; width: 100%; padding: 12px; border: 0; border-radius: 12px; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; font-weight: 700; font-size: 15px;
+  }
+  button.primary:disabled { opacity: .6; cursor: wait; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab { padding: 7px 14px; border-radius: 9px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #0d1324; border: 1px solid var(--border); color: var(--muted); }
+  .chip.ok { color: var(--ok); } .chip.err { color: var(--err); }
+  .out { background: #0a0f1e; border: 1px solid var(--border); border-radius: 12px; padding: 14px; min-height: 260px; max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.6; }
+  .out.code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .think { margin-bottom: 12px; padding: 10px 12px; border-left: 3px solid var(--accent2); background: rgba(155,108,255,.08); color: var(--muted); border-radius: 6px; font-size: 13px; }
+  .copy { float: right; font-size: 12px; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  .docs { grid-column: 1 / -1; }
+  .placeholder { color: var(--muted); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px 0 30px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">DS</div>
+    <div><h1>DeepSeek API Platform</h1><div class="sub">Playground + REST API</div></div>
+  </div>
+  <div id="status" class="status">checking…</div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Request</h2>
+    <label>Model</label><select id="model"></select>
+    <div id="keyWrap" style="display:none"><label>Access key</label><input id="key" type="password" placeholder="x-api-key" /></div>
+    <label>System prompt (optional)</label>
+    <input id="system" placeholder="You are a helpful assistant." />
+    <label>Message</label>
+    <textarea id="message" placeholder="මොනවා හරි අහන්න..."></textarea>
+    <div class="check"><input type="checkbox" id="stream" checked /><span>Stream response</span></div>
+    <button class="primary" id="send">Send</button>
+  </section>
+
+  <section class="card">
+    <h2>Response</h2>
+    <div class="tabs">
+      <button class="tab active" data-tab="reply">Reply</button>
+      <button class="tab" data-tab="raw">Raw JSON</button>
+    </div>
+    <div class="meta" id="meta"></div>
+    <div class="out" id="out"><span class="placeholder">Response එක මෙතන පෙනෙයි…</span></div>
+  </section>
+
+  <section class="card docs">
+    <h2>API usage</h2>
+    <button class="copy" id="copyCurl">Copy</button>
+    <div class="out code" id="curl" style="min-height:0"></div>
+  </section>
+</main>
+<footer>Built for Render · Powered by DeepSeek</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let tab = "reply", state = { reply: "", reasoning: "", raw: null, error: null };
+
+function render() {
+  const out = $("out");
+  out.classList.toggle("code", tab === "raw");
+  out.innerHTML = "";
+  if (tab === "raw") {
+    out.textContent = state.raw ? JSON.stringify(state.raw, null, 2) : "—";
+    return;
+  }
+  if (state.error) { out.textContent = "Error: " + state.error; return; }
+  if (!state.reply && !state.reasoning) { out.innerHTML = '<span class="placeholder">Response එක මෙතන පෙනෙයි…</span>'; return; }
+  if (state.reasoning) {
+    const t = document.createElement("div"); t.className = "think"; t.textContent = state.reasoning; out.appendChild(t);
+  }
+  const r = document.createElement("div"); r.textContent = state.reply; out.appendChild(r);
+}
+
+function setMeta(items) {
+  $("meta").innerHTML = items.map(([t, c]) => `<span class="chip ${c || ""}">${t}</span>`).join("");
+}
+
+document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+  b.classList.add("active"); tab = b.dataset.tab; render();
+}));
+
+function curlText() {
+  const base = location.origin;
+  return `curl -X POST ${base}/api/chat \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: YOUR_ACCESS_KEY" \\
+  -d '{"message": "Hello!", "model": "deepseek/deepseek-v4-flash"}'
+
+# Response
+# { "success": true, "model": "...", "reply": "...", "latency_ms": 1234, "raw": {...} }`;
+}
+$("curl").textContent = curlText();
+$("copyCurl").onclick = () => { navigator.clipboard.writeText(curlText()); $("copyCurl").textContent = "Copied"; setTimeout(() => ($("copyCurl").textContent = "Copy"), 1200); };
+
+(async function init() {
+  try {
+    const cfg = await (await fetch("/api/config")).json();
+    $("model").innerHTML = cfg.models.map((m) => `<option>${m}</option>`).join("");
+    if (cfg.authRequired) { $("keyWrap").style.display = "block"; $("key").value = localStorage.getItem("accessKey") || ""; }
+    $("status").textContent = cfg.configured ? "● online" : "● API key missing";
+    $("status").className = "status " + (cfg.configured ? "ok" : "bad");
+  } catch {
+    $("status").textContent = "● offline"; $("status").className = "status bad";
+  }
+})();
+
+$("send").addEventListener("click", async () => {
+  const message = $("message").value.trim();
+  if (!message) return;
+  const key = $("key").value.trim();
+  if (key) localStorage.setItem("accessKey", key);
+
+  const body = {
+    message, model: $("model").value, system: $("system").value.trim() || undefined,
+    stream: $("stream").checked,
+  };
+  const headers = { "Content-Type": "application/json" };
+  if (key) headers["x-api-key"] = key;
+
+  state = { reply: "", reasoning: "", raw: null, error: null };
+  $("send").disabled = true; $("send").textContent = "Thinking…";
+  setMeta([["sending…"]]); render();
+  const t0 = performance.now();
+
+  try {
+    const res = await fetch("/api/chat", { method: "POST", headers, body: JSON.stringify(body) });
+
+    if (!body.stream || !res.headers.get("content-type")?.includes("text/event-stream")) {
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Request failed");
+      state.reply = data.reply; state.reasoning = data.reasoning || ""; state.raw = data;
+      setMeta([[`${res.status} OK`, "ok"], [`${data.latency_ms} ms`], [data.model], [`${data.reply.length} chars`]]);
+      render(); return;
+    }
+
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = "", chunks = 0, usage = null, model = body.model;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split("\n"); buf = lines.pop();
+      for (const l of lines) {
+        if (!l.startsWith("data: ")) continue;
+        const j = l.slice(6).trim();
+        if (j === "[DONE]") continue;
+        try {
+          const d = JSON.parse(j); chunks++;
+          model = d.model || model; if (d.usage) usage = d.usage;
+          const delta = d.choices?.[0]?.delta || {};
+          if (delta.content) state.reply += delta.content;
+          if (delta.reasoning_content) state.reasoning += delta.reasoning_content;
+          render();
+        } catch {}
+      }
+    }
+    const ms = Math.round(performance.now() - t0);
+    state.raw = { success: true, model, reply: state.reply, reasoning: state.reasoning || null, usage, latency_ms: ms, chunks };
+    setMeta([["200 OK", "ok"], [`${ms} ms`], [model], [`${chunks} chunks`]]);
+    render();
+  } catch (e) {
+    state.error = e.message; state.raw = { success: false, error: e.message };
+    setMeta([["Error", "err"]]); render();
+  } finally {
+    $("send").disabled = false; $("send").textContent = "Send";
+  }
+});
+
+$("message").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("send").click(); });
+</script>
+</body>
+</html>
