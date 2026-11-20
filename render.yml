@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: deepseek-api-platform
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: ACCESS_KEY
+        generateValue: true
+      - key: RATE_LIMIT
+        value: "30"
